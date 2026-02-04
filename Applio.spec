@@ -13,6 +13,7 @@ app_name = 'Applio'
 datas = []
 datas += collect_data_files('gradio')
 datas += collect_data_files('gradio_client')
+datas += collect_data_files('safehttpx')
 datas += collect_data_files('transformers')
 datas += collect_data_files('fairseq')
 datas += collect_data_files('librosa')
