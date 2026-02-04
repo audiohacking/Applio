@@ -160,19 +160,39 @@ jobs:
         VERSION="${{ github.event.inputs.version }}"
         echo "Checking if release exists for version: $VERSION"
         
+        # Validate version format (basic check for tag-like format)
+        if [[ ! "$VERSION" =~ ^[a-zA-Z0-9v._-]+$ ]]; then
+          echo "::error::Invalid version format: $VERSION"
+          echo "Version should only contain alphanumeric characters, 'v', '.', '_', or '-'"
+          exit 1
+        fi
+        
         # Use GitHub API to check if release exists
-        RELEASE_RESPONSE=$(curl -s -o /dev/null -w "%{http_code}" \
+        HTTP_CODE=$(curl -s -o /tmp/release_check.json -w "%{http_code}" \
           -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" \
           -H "Accept: application/vnd.github.v3+json" \
-          "https://api.github.com/repos/${{ github.repository }}/releases/tags/$VERSION")
+          "https://api.github.com/repos/${{ github.repository }}/releases/tags/$VERSION" 2>&1)
         
-        if [ "$RELEASE_RESPONSE" -eq 200 ]; then
+        # Check for curl errors
+        if [ $? -ne 0 ]; then
+          echo "::error::Failed to query GitHub API"
+          cat /tmp/release_check.json 2>/dev/null || echo "No response data available"
+          exit 1
+        fi
+        
+        if [ "$HTTP_CODE" -eq 200 ]; then
           echo "Release $VERSION exists"
           echo "release_exists=true" >> $GITHUB_OUTPUT
+        elif [ "$HTTP_CODE" -eq 404 ]; then
+          echo "Release $VERSION does not exist (HTTP 404)"
+          echo "release_exists=false" >> $GITHUB_OUTPUT
         else
-          echo "Release $VERSION does not exist (HTTP $RELEASE_RESPONSE)"
+          echo "::warning::Unexpected HTTP response code: $HTTP_CODE"
+          cat /tmp/release_check.json 2>/dev/null || echo "No response data available"
           echo "release_exists=false" >> $GITHUB_OUTPUT
         fi
+        
+        rm -f /tmp/release_check.json
         
     - name: Upload to existing release (workflow_dispatch)
       if: github.event_name == 'workflow_dispatch' && steps.check_release.outputs.release_exists == 'true'
