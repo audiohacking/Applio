@@ -13,7 +13,7 @@ if [ ! -f "$ICO_FILE" ]; then
     exit 1
 fi
 
-# Prefer ImageMagick 7 (magick) or 6 (convert); fallback to sips
+# Prefer ImageMagick 7 (magick) or 6 (convert); fallback to sips; ultimate fallback to Python
 USE_IM=
 if command -v magick &> /dev/null; then
     USE_IM=magick
@@ -21,9 +21,11 @@ elif command -v convert &> /dev/null; then
     USE_IM=convert
 fi
 
+# Note: If neither ImageMagick nor sips is available, we'll use Python fallback
+# The sips command is typically available on macOS but may not be on CI runners
 if [ -z "$USE_IM" ] && ! command -v sips &> /dev/null; then
-    echo "Error: ImageMagick (magick/convert) or sips required. Install with: brew install imagemagick"
-    exit 1
+    echo "Warning: ImageMagick (magick/convert) or sips not found."
+    echo "Will use Python fallback to generate icon."
 fi
 
 rm -rf "$ICONSET_DIR"
@@ -35,12 +37,24 @@ echo "Generating icon sizes from ICO file..."
 TEMP_PNG="build/macos/temp_icon.png"
 if [ -n "$USE_IM" ]; then
     if [ "$USE_IM" = "magick" ]; then
-        magick "$ICO_FILE" -background none -alpha set -alpha on -resize 1024x1024 "PNG32:$TEMP_PNG"
+        magick "$ICO_FILE" -background none -alpha set -alpha on -resize 1024x1024 "PNG32:$TEMP_PNG" || true
     else
-        convert "$ICO_FILE" -background none -alpha set -alpha on -resize 1024x1024 "PNG32:$TEMP_PNG"
+        convert "$ICO_FILE" -background none -alpha set -alpha on -resize 1024x1024 "PNG32:$TEMP_PNG" || true
     fi
 else
-    sips -s format png "$ICO_FILE" --out "$TEMP_PNG"
+    sips -s format png "$ICO_FILE" --out "$TEMP_PNG" || true
+fi
+
+# Fallback: Generate icon using Python if conversion failed
+if [ ! -f "$TEMP_PNG" ]; then
+    echo "⚠ Icon conversion failed, generating fallback icon..."
+    python3 build/macos/generate_fallback_icon.py "$TEMP_PNG"
+fi
+
+# Verify temp icon exists
+if [ ! -f "$TEMP_PNG" ]; then
+    echo "Error: Failed to create temp icon at $TEMP_PNG"
+    exit 1
 fi
 
 sizes=(16 32 128 256 512)
