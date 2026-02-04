@@ -141,36 +141,65 @@ def launch_gradio(app_dir, logs_dir):
     # Set up log file to capture all output
     log_file_path = logs_dir / "console.log"
     
-    # Custom print wrapper that writes to both stdout and log file
-    import builtins
-    _original_print = builtins.print
+    # Custom output wrapper that writes to both stdout and log file
+    class TeeOutput:
+        """A class that writes to both stdout/stderr and a log file."""
+        def __init__(self, file_path, original_stream):
+            self.file_path = file_path
+            self.original_stream = original_stream
+            self.log_file = None
+            
+        def write(self, message):
+            # Write to original stream (stdout/stderr)
+            if self.original_stream:
+                try:
+                    self.original_stream.write(message)
+                    self.original_stream.flush()
+                except Exception:
+                    pass
+            
+            # Write to log file
+            if message.strip():  # Only write non-empty messages
+                try:
+                    # Open in append mode, write, and close immediately for real-time updates
+                    with open(self.log_file_path, 'a', encoding='utf-8') as f:
+                        from datetime import datetime
+                        timestamp = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+                        f.write(f"[{timestamp}] {message}")
+                        if not message.endswith('\n'):
+                            f.write('\n')
+                        f.flush()
+                except Exception as e:
+                    # Fallback to original stream if logging fails
+                    if self.original_stream:
+                        self.original_stream.write(f"[Logging Error: {e}]\n")
+        
+        def flush(self):
+            if self.original_stream:
+                try:
+                    self.original_stream.flush()
+                except Exception:
+                    pass
     
-    def _logged_print(*args, **kwargs):
-        """Print that also writes to log file."""
-        # Call original print
-        _original_print(*args, **kwargs)
-        # Also write to log file
-        try:
-            with open(log_file_path, 'a', encoding='utf-8') as f:
-                from datetime import datetime
-                msg = ' '.join(str(arg) for arg in args)
-                if msg.strip():
-                    f.write(f"{datetime.now().strftime('%Y-%m-%d %H:%M:%S')} [INFO] {msg}\n")
-                    f.flush()
-        except Exception:
-            pass
+    # Redirect stdout and stderr to our tee
+    sys.stdout = TeeOutput(log_file_path, sys.stdout)
+    sys.stderr = TeeOutput(log_file_path, sys.stderr)
     
-    # Replace print temporarily for server thread
-    builtins.print = _logged_print
+    print(f"Starting Applio...")
+    print(f"Logs directory: {logs_dir}")
+    print(f"Console log file: {log_file_path}")
+    print(f"All output will be captured to the Console tab in the UI")
+    print("=" * 60)
     
     # Run the Gradio app in a thread so pywebview can take control of main thread
     def run_gradio():
-        print(f"Starting Applio...")
-        print(f"Logs directory: {logs_dir}")
-        print(f"Console log file: {log_file_path}")
-        
-        # Import the app module which will launch Gradio
-        import app
+        try:
+            # Import the app module which will launch Gradio
+            import app
+        except Exception as e:
+            print(f"ERROR: Failed to start Applio: {e}")
+            import traceback
+            traceback.print_exc()
     
     _gradio_thread = threading.Thread(target=run_gradio, daemon=True)
     _gradio_thread.start()

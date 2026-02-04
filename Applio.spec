@@ -75,6 +75,7 @@ tab_modules = [
     'tabs.plugins.plugins',
     'tabs.settings.settings',
     'tabs.realtime.realtime',
+    'tabs.console.console',
 ]
 hiddenimports += tab_modules
 
