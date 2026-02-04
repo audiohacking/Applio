@@ -6,6 +6,7 @@ this directory so they persist across app updates and rebuilds.
 - macOS (bundled): ~/Library/Application Support/Applio
 - Otherwise: APPLIO_APP_SUPPORT env var, or current working directory (dev/script)
 """
+
 import os
 
 

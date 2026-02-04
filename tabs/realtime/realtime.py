@@ -20,6 +20,7 @@ from assets.i18n.i18n import I18nAuto
 i18n = I18nAuto()
 
 from app_paths import get_app_support_dir
+
 _user_data = get_app_support_dir()
 
 model_root = os.path.join(_user_data, "logs")

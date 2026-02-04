@@ -9,7 +9,9 @@ now_dir = os.getcwd()
 
 
 def stop_train(model_name: str):
-    pid_file_path = os.path.join(get_app_support_dir(), "logs", model_name, "config.json")
+    pid_file_path = os.path.join(
+        get_app_support_dir(), "logs", model_name, "config.json"
+    )
     try:
         with open(pid_file_path, "r") as pid_file:
             pid_data = json.load(pid_file)

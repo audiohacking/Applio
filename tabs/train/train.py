@@ -40,6 +40,7 @@ sup_audioext = {
 
 # Custom Pretraineds and embedders under user Application Support (reused across builds)
 from app_paths import get_app_support_dir
+
 _user_data = get_app_support_dir()
 
 pretraineds_custom_path = os.path.join(

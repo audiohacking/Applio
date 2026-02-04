@@ -14,6 +14,7 @@ now_dir = os.getcwd()
 sys.path.append(now_dir)
 
 from app_paths import get_app_support_dir
+
 _user_data = get_app_support_dir()
 
 from core import run_download_script
@@ -62,7 +63,9 @@ json_url = "https://huggingface.co/IAHispano/Applio/raw/main/pretrains.json"
 
 
 def fetch_pretrained_data():
-    pretraineds_custom_path = os.path.join(_user_data, "rvc", "models", "pretraineds", "custom")
+    pretraineds_custom_path = os.path.join(
+        _user_data, "rvc", "models", "pretraineds", "custom"
+    )
     os.makedirs(pretraineds_custom_path, exist_ok=True)
     try:
         with open(

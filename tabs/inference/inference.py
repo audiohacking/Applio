@@ -20,6 +20,7 @@ now_dir = os.getcwd()
 sys.path.append(now_dir)
 
 from app_paths import get_app_support_dir
+
 _user_data = get_app_support_dir()
 
 model_root = os.path.join(_user_data, "logs")
