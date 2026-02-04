@@ -152,3 +152,69 @@ jobs:
           Applio-macOS.dmg
           Applio-macOS.zip
           checksums.txt
+          
+    - name: Check if release exists (workflow_dispatch)
+      if: github.event_name == 'workflow_dispatch'
+      id: check_release
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      run: |
+        VERSION="${{ github.event.inputs.version }}"
+        echo "Checking if release exists for version: $VERSION"
+        
+        # Set up cleanup trap
+        trap 'rm -f /tmp/release_check.json' EXIT
+        
+        # Validate version format (basic check for tag-like format)
+        if [[ ! "$VERSION" =~ ^[a-zA-Z0-9v._-]+$ ]]; then
+          echo "::error::Invalid version format: $VERSION"
+          echo "Version should only contain alphanumeric characters, 'v', '.', '_', or '-'"
+          exit 1
+        fi
+        
+        # Use GitHub API to check if release exists
+        HTTP_CODE=$(curl -s -o /tmp/release_check.json -w "%{http_code}" \
+          -H "Authorization: Bearer $GITHUB_TOKEN" \
+          -H "Accept: application/vnd.github.v3+json" \
+          "https://api.github.com/repos/${{ github.repository }}/releases/tags/$VERSION")
+        CURL_EXIT=$?
+        
+        # Check for curl errors
+        if [ $CURL_EXIT -ne 0 ]; then
+          echo "::error::Failed to query GitHub API (curl exit code: $CURL_EXIT)"
+          exit 1
+        fi
+        
+        # Validate HTTP_CODE is numeric
+        if ! [[ "$HTTP_CODE" =~ ^[0-9]+$ ]]; then
+          echo "::error::Invalid HTTP response code: $HTTP_CODE"
+          exit 1
+        fi
+        
+        if [ "$HTTP_CODE" -eq 200 ]; then
+          echo "Release $VERSION exists"
+          echo "release_exists=true" >> $GITHUB_OUTPUT
+        elif [ "$HTTP_CODE" -eq 404 ]; then
+          echo "Release $VERSION does not exist (HTTP 404)"
+          echo "release_exists=false" >> $GITHUB_OUTPUT
+        else
+          echo "::error::Unexpected HTTP response code: $HTTP_CODE"
+          echo "This may indicate authentication issues, rate limiting, or server errors."
+          exit 1
+        fi
+        
+    - name: Upload to existing release (workflow_dispatch)
+      if: github.event_name == 'workflow_dispatch' && steps.check_release.outputs.release_exists == 'true'
+      uses: softprops/action-gh-release@v1
+      with:
+        tag_name: ${{ github.event.inputs.version }}
+        files: |
+          Applio-macOS.dmg
+          Applio-macOS.zip
+          checksums.txt
+          
+    - name: Log release does not exist (workflow_dispatch)
+      if: github.event_name == 'workflow_dispatch' && steps.check_release.outputs.release_exists == 'false'
+      run: |
+        echo "::warning::Release ${{ github.event.inputs.version }} does not exist. Skipping upload."
+        echo "To create a release with this version, please create it manually or trigger the release workflow."
