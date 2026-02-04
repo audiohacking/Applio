@@ -53,12 +53,11 @@ def setup_environment():
     os.environ["OMP_NUM_THREADS"] = "1"  # Optimize for single-threaded performance on Apple Silicon
     os.environ["KMP_DUPLICATE_LIB_OK"] = "TRUE"  # Allow duplicate library loading
     
-    # Additional MPS optimizations
+    # Additional MPS optimizations for Apple Silicon
     if sys.platform == "darwin":
-        # Optimize for Metal GPU
+        # Note: These are experimental optimizations for Metal GPU performance
+        # METAL_DEVICE_WRAPPER_TYPE enables Metal device wrapper for better compatibility
         os.environ["METAL_DEVICE_WRAPPER_TYPE"] = "1"
-        # Use Metal backend for torch operations
-        os.environ["PYTORCH_MPS_PREFER_METAL"] = "1"
     
     # Change working directory to app bundle
     os.chdir(app_dir)

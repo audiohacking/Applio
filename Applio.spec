@@ -120,7 +120,7 @@ coll = COLLECT(
     a.zipfiles,
     a.datas,
     strip=False,
-    upx=False,  # Disabled for macOS - UPX can cause issues with code signing
+    upx=False,  # Disabled for macOS - UPX (Ultimate Packer for eXecutables) can cause issues with code signing
     upx_exclude=[],
     name=app_name,
 )
@@ -146,6 +146,6 @@ app = BUNDLE(
         },
         'NSMicrophoneUsageDescription': 'Applio needs access to the microphone for voice conversion and real-time features.',
         'LSApplicationCategoryType': 'public.app-category.music',
-        'NSCameraUsageDescription': 'Applio may need camera access for certain features.',
+        # Note: Camera permission removed as Applio does not require camera access
     },
 )
