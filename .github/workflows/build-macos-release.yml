@@ -162,7 +162,7 @@ jobs:
         
         # Use GitHub API to check if release exists
         RELEASE_RESPONSE=$(curl -s -o /dev/null -w "%{http_code}" \
-          -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
+          -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" \
           -H "Accept: application/vnd.github.v3+json" \
           "https://api.github.com/repos/${{ github.repository }}/releases/tags/$VERSION")
         
