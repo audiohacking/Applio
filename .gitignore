@@ -22,3 +22,17 @@ rvc/models
 env
 venv
 .venv
+
+# macOS build artifacts
+dist/
+build/
+*.app
+*.dmg
+*.icns
+*.spec.lock
+*.egg-info/
+dmg_temp/
+VERSION
+checksums.txt
+build/macos/Applio.iconset/
+build/macos/temp_icon.png
