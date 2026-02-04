@@ -42,6 +42,7 @@ hiddenimports += collect_submodules('webview')  # pywebview
 hiddenimports += collect_submodules('soundfile')
 hiddenimports += collect_submodules('faiss')
 hiddenimports += collect_submodules('tensorboard')
+hiddenimports += collect_submodules('webrtcvad')
 
 # Additional hidden imports
 hiddenimports += [
@@ -61,6 +62,8 @@ hiddenimports += [
     'assets.themes.loadThemes',
     'assets.installation_checker',
     'assets.discord_presence',
+    'webrtcvad',
+    'rvc.realtime.utils.vad',
 ]
 
 # Add all tab modules
