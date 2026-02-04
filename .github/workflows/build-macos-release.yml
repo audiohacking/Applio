@@ -171,12 +171,18 @@ jobs:
         HTTP_CODE=$(curl -s -o /tmp/release_check.json -w "%{http_code}" \
           -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" \
           -H "Accept: application/vnd.github.v3+json" \
-          "https://api.github.com/repos/${{ github.repository }}/releases/tags/$VERSION" 2>&1)
+          "https://api.github.com/repos/${{ github.repository }}/releases/tags/$VERSION")
+        CURL_EXIT=$?
         
         # Check for curl errors
-        if [ $? -ne 0 ]; then
-          echo "::error::Failed to query GitHub API"
-          cat /tmp/release_check.json 2>/dev/null || echo "No response data available"
+        if [ $CURL_EXIT -ne 0 ]; then
+          echo "::error::Failed to query GitHub API (curl exit code: $CURL_EXIT)"
+          exit 1
+        fi
+        
+        # Validate HTTP_CODE is numeric
+        if ! [[ "$HTTP_CODE" =~ ^[0-9]+$ ]]; then
+          echo "::error::Invalid HTTP response code: $HTTP_CODE"
           exit 1
         fi
         
@@ -187,9 +193,10 @@ jobs:
           echo "Release $VERSION does not exist (HTTP 404)"
           echo "release_exists=false" >> $GITHUB_OUTPUT
         else
-          echo "::warning::Unexpected HTTP response code: $HTTP_CODE"
+          echo "::error::Unexpected HTTP response code: $HTTP_CODE"
           cat /tmp/release_check.json 2>/dev/null || echo "No response data available"
-          echo "release_exists=false" >> $GITHUB_OUTPUT
+          rm -f /tmp/release_check.json
+          exit 1
         fi
         
         rm -f /tmp/release_check.json
