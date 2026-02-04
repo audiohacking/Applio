@@ -10,6 +10,7 @@ The macOS build creates a native `.app` bundle that:
 - Optimizes for unified memory architecture
 - Includes a native UI via pywebview (no browser required)
 - Packages all dependencies in a single distributable app
+- **Features a real-time Console tab for monitoring training, model loading, and errors**
 
 ## Architecture Optimizations
 
@@ -147,8 +148,35 @@ Users should:
 All user data is stored in standard macOS locations:
 - App data: `~/Library/Application Support/Applio/`
 - Logs: `~/Library/Logs/Applio/`
+  - `console.log` - Captured stdout/stderr for the Console tab
 
 This keeps the app bundle clean and follows macOS conventions.
+
+## Console Tab Feature
+
+The native app includes a **Console tab** in the UI that displays real-time Python output:
+
+### Features
+- **Real-time monitoring** of model loading, training progress, and errors
+- **Auto-refresh mode** updates every 2 seconds
+- **Manual refresh** for on-demand updates
+- **Adjustable line count** (50-1000 lines)
+- **Copy button** to share error messages
+- **Clear log** to reset the console
+
+### What's Captured
+- Model loading progress and status
+- Training epochs, loss values, and metrics
+- Inference processing messages
+- Error messages and stack traces
+- System information (GPU/CPU usage)
+- All print() statements from Python code
+
+### Log Location
+- **Bundled App**: `~/Library/Logs/Applio/console.log`
+- **Script Mode**: `./logs/console.log`
+
+The console captures both stdout and stderr in real-time, making it easy to monitor long-running operations like training without needing a terminal window.
 
 ## Code Signing
 
