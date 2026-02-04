@@ -194,7 +194,7 @@ jobs:
           echo "release_exists=false" >> $GITHUB_OUTPUT
         else
           echo "::error::Unexpected HTTP response code: $HTTP_CODE"
-          cat /tmp/release_check.json 2>/dev/null || echo "No response data available"
+          echo "This may indicate authentication issues, rate limiting, or server errors."
           rm -f /tmp/release_check.json
           exit 1
         fi
