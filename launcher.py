@@ -162,7 +162,7 @@ def launch_gradio(app_dir, logs_dir):
             if message.strip():  # Only write non-empty messages
                 try:
                     # Open in append mode, write, and close immediately for real-time updates
-                    with open(self.log_file_path, 'a', encoding='utf-8') as f:
+                    with open(self.file_path, 'a', encoding='utf-8') as f:
                         from datetime import datetime
                         timestamp = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
                         f.write(f"[{timestamp}] {message}")
