@@ -156,9 +156,14 @@ jobs:
     - name: Check if release exists (workflow_dispatch)
       if: github.event_name == 'workflow_dispatch'
       id: check_release
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       run: |
         VERSION="${{ github.event.inputs.version }}"
         echo "Checking if release exists for version: $VERSION"
+        
+        # Set up cleanup trap
+        trap 'rm -f /tmp/release_check.json' EXIT
         
         # Validate version format (basic check for tag-like format)
         if [[ ! "$VERSION" =~ ^[a-zA-Z0-9v._-]+$ ]]; then
@@ -169,7 +174,7 @@ jobs:
         
         # Use GitHub API to check if release exists
         HTTP_CODE=$(curl -s -o /tmp/release_check.json -w "%{http_code}" \
-          -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" \
+          -H "Authorization: Bearer $GITHUB_TOKEN" \
           -H "Accept: application/vnd.github.v3+json" \
           "https://api.github.com/repos/${{ github.repository }}/releases/tags/$VERSION")
         CURL_EXIT=$?
@@ -195,11 +200,8 @@ jobs:
         else
           echo "::error::Unexpected HTTP response code: $HTTP_CODE"
           echo "This may indicate authentication issues, rate limiting, or server errors."
-          rm -f /tmp/release_check.json
           exit 1
         fi
-        
-        rm -f /tmp/release_check.json
         
     - name: Upload to existing release (workflow_dispatch)
       if: github.event_name == 'workflow_dispatch' && steps.check_release.outputs.release_exists == 'true'
