@@ -10,10 +10,14 @@
 *.m4a
 *.bin
 *.wav
-*.txt
 *.zip
 *.png
 *.safetensors
+
+# Ignore txt files except for specific ones we want to keep
+*.txt
+!.github/DMG_README.txt
+!requirements*.txt
 
 assets/audios
 assets/datasets
@@ -25,7 +29,8 @@ venv
 
 # macOS build artifacts
 dist/
-build/
+build/*
+!build/macos/
 *.app
 *.dmg
 *.icns
