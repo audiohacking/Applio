@@ -30,9 +30,11 @@ def setup_environment():
         # Running as PyInstaller bundle
         bundle_dir = sys._MEIPASS
         app_dir = Path(bundle_dir)
+        print(f"Running as bundled app from: {bundle_dir}")
     else:
         # Running as script
         app_dir = Path(__file__).parent
+        print(f"Running as script from: {app_dir}")
     
     # Set up paths for the app - ALL data goes to user's Library directory
     home_dir = Path.home()
@@ -42,19 +44,41 @@ def setup_environment():
     # Create directories
     for directory in [app_support_dir, logs_dir]:
         directory.mkdir(parents=True, exist_ok=True)
+        print(f"Created/verified directory: {directory}")
     
     # IMPORTANT: Set environment variables for Apple MPS optimization
-    os.environ["PYTORCH_ENABLE_MPS_FALLBACK"] = "1"  # Enable Metal Performance Shaders
+    # These settings optimize for Apple's unified memory architecture
+    os.environ["PYTORCH_ENABLE_MPS_FALLBACK"] = "1"  # Enable Metal Performance Shaders with CPU fallback
     os.environ["PYTORCH_MPS_HIGH_WATERMARK_RATIO"] = "0.0"  # Disable MPS memory limit to prevent OOM errors
-    os.environ["OMP_NUM_THREADS"] = "1"
-    os.environ["KMP_DUPLICATE_LIB_OK"] = "TRUE"
+    os.environ["OMP_NUM_THREADS"] = "1"  # Optimize for single-threaded performance on Apple Silicon
+    os.environ["KMP_DUPLICATE_LIB_OK"] = "TRUE"  # Allow duplicate library loading
+    
+    # Additional MPS optimizations
+    if sys.platform == "darwin":
+        # Optimize for Metal GPU
+        os.environ["METAL_DEVICE_WRAPPER_TYPE"] = "1"
+        # Use Metal backend for torch operations
+        os.environ["PYTORCH_MPS_PREFER_METAL"] = "1"
     
     # Change working directory to app bundle
     os.chdir(app_dir)
+    print(f"Changed working directory to: {os.getcwd()}")
     
-    print(f"Applio Data directories configured:")
+    print(f"\nApplio Data directories configured:")
     print(f"  App Support: {app_support_dir}")
     print(f"  Logs: {logs_dir}")
+    print(f"  Working Dir: {app_dir}")
+    
+    # Log system information
+    import platform
+    print(f"\nSystem Information:")
+    print(f"  Platform: {sys.platform}")
+    print(f"  Machine: {platform.machine()}")
+    print(f"  Python: {sys.version.split()[0]}")
+    
+    # Check for Apple Silicon
+    if sys.platform == "darwin" and platform.machine() == "arm64":
+        print(f"  Apple Silicon: Detected (MPS optimizations enabled)")
     
     return app_dir, logs_dir
 
