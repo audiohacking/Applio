@@ -9,8 +9,10 @@ from distutils.util import strtobool
 now_dir = os.getcwd()
 sys.path.append(now_dir)
 
+from app_paths import get_app_support_dir
+
 current_script_directory = os.path.dirname(os.path.realpath(__file__))
-logs_path = os.path.join(current_script_directory, "logs")
+logs_path = os.path.join(get_app_support_dir(), "logs")
 
 from rvc.lib.tools.prerequisites_download import prequisites_download_pipeline
 from rvc.train.process.model_blender import model_blender

@@ -1,6 +1,7 @@
 import os
 import torch
 from collections import OrderedDict
+from app_paths import get_app_support_dir
 
 
 def extract(ckpt):
@@ -68,9 +69,12 @@ def model_blender(name, path1, path2, ratio):
         opt["info"] = message
         opt["vocoder"] = vocoder
 
-        torch.save(opt, os.path.join("logs", f"{name}.pth"))
+        logs_dir = os.path.join(get_app_support_dir(), "logs")
+        out_path = os.path.join(logs_dir, f"{name}.pth")
+        os.makedirs(logs_dir, exist_ok=True)
+        torch.save(opt, out_path)
         print(message)
-        return message, os.path.join("logs", f"{name}.pth")
+        return message, out_path
     except Exception as error:
         print(f"An error occurred blending the models: {error}")
         return error

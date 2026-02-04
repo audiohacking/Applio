@@ -39,14 +39,17 @@ from tabs.settings.settings import settings_tab
 from tabs.realtime.realtime import realtime_tab
 from tabs.console.console import console_tab
 
-# Run prerequisites
+# Run prerequisites (non-blocking: if offline/unreachable, app still starts; user can retry from Train tab)
 from core import run_prerequisites_script
 
-run_prerequisites_script(
-    pretraineds_hifigan=True,
-    models=True,
-    exe=True,
-)
+try:
+    run_prerequisites_script(
+        pretraineds_hifigan=True,
+        models=True,
+        exe=True,
+    )
+except Exception as e:
+    print(f"Prerequisites check/download skipped (will retry when online): {e}")
 
 # Initialize i18n
 from assets.i18n.i18n import I18nAuto

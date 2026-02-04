@@ -51,15 +51,24 @@ jobs:
     - name: Install Python dependencies
       run: |
         python -m pip install --upgrade pip
-        pip install -r requirements_macos.txt
-        # Verify critical dependencies for PyInstaller
-        pip show webrtcvad-wheels || echo "Warning: webrtcvad-wheels not installed"
-        pip show pyinstaller || echo "Warning: pyinstaller not installed"
+        python -m pip install -r requirements_macos.txt
+        # Verify critical dependencies (same checks as local_build.sh; fail early on missing packages)
+        MISSING=""
+        for pkg in webrtcvad-wheels pyinstaller torch gradio pywebview; do
+          if ! python -m pip show "$pkg" &>/dev/null; then
+            MISSING="${MISSING} ${pkg}"
+          fi
+        done
+        if [ -n "$MISSING" ]; then
+          echo "::error::Missing package(s):$MISSING"
+          exit 1
+        fi
+        echo "Critical packages present (webrtcvad-wheels, pyinstaller, torch, gradio, pywebview)"
 
     - name: Generate app icon
       run: |
         chmod +x build/macos/generate_icon.sh
-        ./build/macos/generate_icon.sh
+        PYTHON=python ./build/macos/generate_icon.sh
 
     - name: Check build/macos assets (icon, codesign, DMG README)
       run: |

@@ -91,7 +91,6 @@ def console_tab():
             max_lines=50,
             value=read_console_log(200),
             interactive=False,
-            show_copy_button=True,
             elem_classes=["console-output"]
         )
         
@@ -121,8 +120,9 @@ def console_tab():
             return read_console_log(int(lines))
         
         def handle_clear():
-            result = clear_console_log()
-            return result, read_console_log(200)
+            clear_console_log()
+            gr.Info(i18n("Console log cleared successfully."))
+            return read_console_log(200)
         
         refresh_btn.click(
             fn=refresh_console,
@@ -132,20 +132,18 @@ def console_tab():
         
         clear_btn.click(
             fn=handle_clear,
-            outputs=[gr.Textbox(visible=False), console_output]
+            outputs=[console_output]
         )
         
-        # Auto-refresh functionality
+        # Auto-refresh: use gr.Timer (documented) to poll every 2s when enabled
         def auto_refresh_func(enabled, lines):
             if enabled:
                 return refresh_console(lines)
             return gr.update()
         
-        # Set up periodic refresh when enabled
-        console_output.change(
+        timer = gr.Timer(value=2)
+        timer.tick(
             fn=auto_refresh_func,
             inputs=[auto_refresh, lines_slider],
-            outputs=[console_output],
-            every=2,
-            trigger_mode="always_last"
+            outputs=[console_output]
         )

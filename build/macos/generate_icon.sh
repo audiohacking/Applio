@@ -46,9 +46,10 @@ else
 fi
 
 # Fallback: Generate icon using Python if conversion failed
+# Use PYTHON if set (e.g. by local_build.sh) so the same interpreter with deps is used
 if [ ! -f "$TEMP_PNG" ]; then
     echo "⚠ Icon conversion failed, generating fallback icon..."
-    python3 build/macos/generate_fallback_icon.py "$TEMP_PNG"
+    "${PYTHON:-python3}" build/macos/generate_fallback_icon.py "$TEMP_PNG"
 fi
 
 # Verify temp icon exists

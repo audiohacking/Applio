@@ -23,6 +23,9 @@ from tqdm import tqdm
 now_dir = os.getcwd()
 sys.path.append(os.path.join(now_dir))
 
+from app_paths import get_app_support_dir
+_data_root = get_app_support_dir()
+
 from losses import discriminator_loss, feature_loss, generator_loss, kl_loss
 from mel_processing import (
     MultiScaleMelSpectrogramLoss,
@@ -74,7 +77,7 @@ if vocoder == "RefineGAN":
     disc_version = "v3"
     multiscale_mel_loss = True
 
-current_dir = os.getcwd()
+current_dir = os.getcwd()  # bundle/app dir for assets
 
 try:
     with open(os.path.join(current_dir, "assets", "config.json"), "r") as f:
@@ -93,7 +96,7 @@ try:
 except (FileNotFoundError, json.JSONDecodeError, KeyError):
     train_dtype = torch.float32
 
-experiment_dir = os.path.join(current_dir, "logs", model_name)
+experiment_dir = os.path.join(_data_root, "logs", model_name)
 config_save_path = os.path.join(experiment_dir, "config.json")
 dataset_path = os.path.join(experiment_dir, "sliced_audios")
 model_info_path = os.path.join(experiment_dir, "model_info.json")
@@ -272,7 +275,7 @@ def main():
 
         # Clean up unnecessary files
         for root, dirs, files in os.walk(
-            os.path.join(now_dir, "logs", model_name), topdown=False
+            os.path.join(_data_root, "logs", model_name), topdown=False
         ):
             for name in files:
                 file_path = os.path.join(root, name)
@@ -549,17 +552,17 @@ def run(
 
     cache = []
     # collect the reference audio for tensorboard evaluation
-    if os.path.isfile(os.path.join("logs", "reference", embedder_name, "feats.npy")):
+    if os.path.isfile(os.path.join(_data_root, "logs", "reference", embedder_name, "feats.npy")):
         print("Using", embedder_name, "reference set for validation")
-        phone = np.load(os.path.join("logs", "reference", embedder_name, "feats.npy"))
+        phone = np.load(os.path.join(_data_root, "logs", "reference", embedder_name, "feats.npy"))
         # expanding x2 to match pitch size
         phone = np.repeat(phone, 2, axis=0)
         phone_lengths = torch.LongTensor([phone.shape[0]]).to(device)
         phone = torch.FloatTensor(phone).unsqueeze(0).to(device)
-        pitch = np.load(os.path.join("logs", "reference", "pitch_coarse.npy"))
+        pitch = np.load(os.path.join(_data_root, "logs", "reference", "pitch_coarse.npy"))
         # removed last frame to match features
         pitch = torch.LongTensor(pitch[:-1]).unsqueeze(0).to(device)
-        pitchf = np.load(os.path.join("logs", "reference", "pitch_fine.npy"))
+        pitchf = np.load(os.path.join(_data_root, "logs", "reference", "pitch_fine.npy"))
         # removed last frame to match features
         pitchf = torch.FloatTensor(pitchf[:-1]).unsqueeze(0).to(device)
         sid = torch.LongTensor([0]).to(device)

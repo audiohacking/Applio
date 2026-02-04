@@ -3,7 +3,10 @@ from concurrent.futures import ThreadPoolExecutor
 from tqdm import tqdm
 import requests
 
+from app_paths import get_app_support_dir
+
 url_base = "https://huggingface.co/IAHispano/Applio/resolve/main/Resources"
+_user_data_root = get_app_support_dir()
 
 pretraineds_hifigan_list = [
     (
@@ -35,7 +38,7 @@ executables_list = [
     ("", ["ffmpeg.exe", "ffprobe.exe"]),
 ]
 
-folder_mapping_list = {
+_folder_mapping = {
     "pretrained_v2/": "rvc/models/pretraineds/hifi-gan/",
     "refinegan/": "rvc/models/pretraineds/refinegan/",
     "embedders/contentvec/": "rvc/models/embedders/contentvec/",
@@ -44,19 +47,30 @@ folder_mapping_list = {
 }
 
 
+def _local_folder(remote_folder):
+    rel = _folder_mapping.get(remote_folder, "")
+    return os.path.join(_user_data_root, rel) if rel else ""
+
+
 def get_file_size_if_missing(file_list):
     """
     Calculate the total size of files to be downloaded only if they do not exist locally.
+    When offline or when the server is unreachable, returns 0 for missing files so the
+    app can start and the UI is shown; prerequisites can be downloaded later when online.
     """
     total_size = 0
     for remote_folder, files in file_list:
-        local_folder = folder_mapping_list.get(remote_folder, "")
+        local_folder = _local_folder(remote_folder)
         for file in files:
             destination_path = os.path.join(local_folder, file)
             if not os.path.exists(destination_path):
                 url = f"{url_base}/{remote_folder}{file}"
-                response = requests.head(url)
-                total_size += int(response.headers.get("content-length", 0))
+                try:
+                    response = requests.head(url, timeout=5)
+                    total_size += int(response.headers.get("content-length", 0))
+                except (requests.RequestException, ValueError) as e:
+                    # Offline or unreachable: skip this file so app can start
+                    print(f"Prerequisites: skipping size check for {file} ({e})")
     return total_size
 
 
@@ -85,7 +99,7 @@ def download_mapping_files(file_mapping_list, global_bar):
     with ThreadPoolExecutor() as executor:
         futures = []
         for remote_folder, file_list in file_mapping_list:
-            local_folder = folder_mapping_list.get(remote_folder, "")
+            local_folder = _local_folder(remote_folder)
             for file in file_list:
                 destination_path = os.path.join(local_folder, file)
                 if not os.path.exists(destination_path):

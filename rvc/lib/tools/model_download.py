@@ -11,10 +11,11 @@ from tqdm import tqdm
 now_dir = os.getcwd()
 sys.path.append(now_dir)
 
+from app_paths import get_app_support_dir
 from rvc.lib.utils import format_title
 from rvc.lib.tools import gdown
 
-file_path = os.path.join(now_dir, "logs")
+file_path = os.path.join(get_app_support_dir(), "logs")
 zips_path = os.path.join(file_path, "zips")
 os.makedirs(zips_path, exist_ok=True)
 
@@ -177,7 +178,7 @@ def handle_extraction_process():
         if filename.endswith(".zip"):
             zipfile_path = os.path.join(zips_path, filename)
             model_name = format_title(os.path.basename(zipfile_path).split(".zip")[0])
-            extract_folder_path = os.path.join("logs", os.path.normpath(model_name))
+            extract_folder_path = os.path.join(file_path, os.path.normpath(model_name))
             success = extract(zipfile_path, extract_folder_path)
             clean_extracted_files(extract_folder_path, model_name)
 

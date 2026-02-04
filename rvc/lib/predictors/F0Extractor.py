@@ -76,8 +76,10 @@ class F0Extractor:
             )
             f0 = f0.squeeze().cpu().numpy()
         elif method == "rmvpe":
+            from app_paths import get_app_support_dir
+            rmvpe_path = os.path.join(get_app_support_dir(), "rvc", "models", "predictors", "rmvpe.pt")
             model_rmvpe = RMVPE0Predictor(
-                os.path.join("rvc", "models", "predictors", "rmvpe.pt"),
+                rmvpe_path,
                 device=config.device,
                 # hop_length=80
             )

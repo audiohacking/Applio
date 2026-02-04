@@ -13,6 +13,9 @@ from tqdm import tqdm
 now_dir = os.getcwd()
 sys.path.append(now_dir)
 
+from app_paths import get_app_support_dir
+_user_data = get_app_support_dir()
+
 from core import run_download_script
 from rvc.lib.utils import format_title
 
@@ -43,7 +46,7 @@ def save_drop_model(dropbox):
             model_name = model_name.replace(rep, "")
         model_name = model_name.split(".index")[0]
 
-    model_path = os.path.join(now_dir, "logs", model_name)
+    model_path = os.path.join(_user_data, "logs", model_name)
     if not os.path.exists(model_path):
         os.makedirs(model_path)
     if os.path.exists(os.path.join(model_path, file_name)):
@@ -59,7 +62,7 @@ json_url = "https://huggingface.co/IAHispano/Applio/raw/main/pretrains.json"
 
 
 def fetch_pretrained_data():
-    pretraineds_custom_path = os.path.join("rvc", "models", "pretraineds", "custom")
+    pretraineds_custom_path = os.path.join(_user_data, "rvc", "models", "pretraineds", "custom")
     os.makedirs(pretraineds_custom_path, exist_ok=True)
     try:
         with open(
@@ -118,7 +121,7 @@ def download_file(url, destination_path, progress_bar):
 
 
 def download_pretrained_model(model, sample_rate, url_g="", url_d=""):
-    save_path = os.path.join("rvc", "models", "pretraineds", "custom")
+    save_path = os.path.join(_user_data, "rvc", "models", "pretraineds", "custom")
     os.makedirs(save_path, exist_ok=True)
     tasks = []
 

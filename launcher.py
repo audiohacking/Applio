@@ -41,10 +41,13 @@ def setup_environment():
     app_support_dir = home_dir / "Library" / "Application Support" / "Applio"
     logs_dir = home_dir / "Library" / "Logs" / "Applio"
     
-    # Create directories
+    # Create directories (user data root so models/data persist across builds/versions)
+    (app_support_dir / "logs").mkdir(parents=True, exist_ok=True)
     for directory in [app_support_dir, logs_dir]:
         directory.mkdir(parents=True, exist_ok=True)
         print(f"Created/verified directory: {directory}")
+    
+    os.environ["APPLIO_APP_SUPPORT"] = str(app_support_dir)
     
     # IMPORTANT: Set environment variables for Apple MPS optimization
     # These settings optimize for Apple's unified memory architecture
@@ -116,20 +119,45 @@ def cleanup():
     print("Goodbye!")
 
 def wait_for_server(url='http://127.0.0.1:6969', timeout=30):
-    """Wait for the server to be ready by polling the endpoint."""
-    print("Waiting for Applio server to start...")
+    """Wait for the server to be ready by polling. Returns True when ready."""
     start_time = time.time()
     while time.time() - start_time < timeout:
         try:
             response = urllib.request.urlopen(url, timeout=1)
             if response.getcode() == 200:
-                print("Applio server is ready!")
                 return True
         except (urllib.error.URLError, ConnectionError, OSError):
-            # Server not ready yet, wait a bit
             time.sleep(0.5)
-    print(f"Warning: Server did not respond within {timeout} seconds")
     return False
+
+# Shown immediately so user sees progress; we redirect to the real UI when server is up (no second instance).
+LOADING_HTML = '''<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Applio - Starting</title>
+<style>
+  * { box-sizing: border-box; }
+  body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: #1a1a1a; color: #e5e5e5; margin: 0; padding: 2rem; min-height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+  .box { max-width: 520px; text-align: center; }
+  h1 { font-size: 1.5rem; margin-bottom: 1rem; }
+  p { color: #a3a3a3; line-height: 1.6; margin: 0.5rem 0; }
+  .spinner { width: 40px; height: 40px; border: 3px solid #333; border-top-color: #0ea5e9; border-radius: 50%; animation: spin 0.8s linear infinite; margin: 0 auto 1.5rem; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .log-path { font-size: 0.85rem; word-break: break-all; color: #737373; margin-top: 1.5rem; }
+</style>
+</head>
+<body>
+  <div class="box">
+    <div class="spinner"></div>
+    <h1>Applio is starting</h1>
+    <p>Checking and downloading prerequisites if needed. This may take several minutes on first run.</p>
+    <p>You will be switched to the main interface when ready.</p>
+    <p class="log-path">Log: ~/Library/Logs/Applio/console.log</p>
+  </div>
+</body>
+</html>'''
 
 def launch_gradio(app_dir, logs_dir):
     """Launch the Gradio app."""
@@ -180,6 +208,10 @@ def launch_gradio(app_dir, logs_dir):
                     self.original_stream.flush()
                 except Exception:
                     pass
+        
+        def isatty(self):
+            """Required by uvicorn/logging when configuring formatters; we are not a TTY."""
+            return False
     
     # Redirect stdout and stderr to our tee
     sys.stdout = TeeOutput(log_file_path, sys.stdout)
@@ -191,31 +223,27 @@ def launch_gradio(app_dir, logs_dir):
     print(f"All output will be captured to the Console tab in the UI")
     print("=" * 60)
     
-    # Run the Gradio app in a thread so pywebview can take control of main thread
-    def run_gradio():
+    # Single background thread: import app (runs prerequisites) then start Gradio server.
+    # We never start a second Applio process.
+    def run_app_and_server():
         try:
-            # Import the app module which will launch Gradio
             import app
+            app.launch_gradio("127.0.0.1", 6969)
         except Exception as e:
             print(f"ERROR: Failed to start Applio: {e}")
             import traceback
             traceback.print_exc()
     
-    _gradio_thread = threading.Thread(target=run_gradio, daemon=True)
+    _gradio_thread = threading.Thread(target=run_app_and_server, daemon=True)
     _gradio_thread.start()
     
-    # Wait for server to be ready
-    wait_for_server()
-    
-    # Launch pywebview window
     try:
         import webview
-        print("Opening Applio window...")
-        
-        # Create window and keep reference so we can treat close-as-quit
+        print("Opening Applio window (loading page first)...")
+        # Show loading page immediately; redirect to real UI when server is ready (no second instance).
         window = webview.create_window(
             'Applio',
-            'http://127.0.0.1:6969',
+            html=LOADING_HTML,
             width=1400,
             height=900,
             resizable=True,
@@ -223,31 +251,37 @@ def launch_gradio(app_dir, logs_dir):
             min_size=(800, 600),
             background_color='#1a1a1a',
             text_select=True,
-            on_top=False,  # Keep in foreground but not always on top
-            focus=True     # Get focus on creation
+            on_top=False,
+            focus=True,
         )
         
-        # On macOS, closing the window (red X) does not quit the app by default;
-        # the Cocoa run loop keeps running and the app can "reopen". Treat window
-        # close as an explicit quit: cleanup and exit so we don't respawn.
+        # Redirect this same window when server is up (long timeout for first-run download).
+        def redirect_when_ready():
+            print("Waiting for Applio server (prerequisites may be downloading)...")
+            if wait_for_server(timeout=600):
+                print("Applio server is ready — switching to main interface.")
+                try:
+                    window.load_url("http://127.0.0.1:6969")
+                except Exception as e:
+                    print(f"Redirect failed: {e}")
+            else:
+                print("Server did not start in time. Check ~/Library/Logs/Applio/console.log")
+        
+        threading.Thread(target=redirect_when_ready, daemon=True).start()
+        
+        # Quit fully on close so macOS does not reopen the app.
         if window is not None:
             def on_window_closed():
-                print("\nWindow closed by user — quitting.")
+                print("\nWindow closed — quitting.")
                 cleanup()
                 os._exit(0)
             try:
                 window.events.closed += on_window_closed
             except Exception:
-                pass  # older pywebview may not have events.closed
+                pass
         
-        # Register cleanup handler for graceful shutdown (e.g. Dock Quit, SIGTERM)
         atexit.register(cleanup)
-        
-        # Start the webview - this blocks until the GUI run loop exits
-        # When window is closed, on_window_closed() runs and we os._exit(0)
-        webview.start(gui='cocoa')  # Explicitly use Cocoa for macOS
-        
-        # If start() returns without on_window_closed firing (e.g. other backends)
+        webview.start(gui='cocoa')
         print("\nWindow closed by user")
         
     except ImportError:

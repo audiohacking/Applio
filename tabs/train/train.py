@@ -38,26 +38,28 @@ sup_audioext = {
     "ac3",
 }
 
-# Custom Pretraineds
+# Custom Pretraineds and embedders under user Application Support (reused across builds)
+from app_paths import get_app_support_dir
+_user_data = get_app_support_dir()
+
 pretraineds_custom_path = os.path.join(
-    now_dir, "rvc", "models", "pretraineds", "custom"
+    _user_data, "rvc", "models", "pretraineds", "custom"
 )
-
-pretraineds_custom_path_relative = os.path.relpath(pretraineds_custom_path, now_dir)
-
 custom_embedder_root = os.path.join(
-    now_dir, "rvc", "models", "embedders", "embedders_custom"
+    _user_data, "rvc", "models", "embedders", "embedders_custom"
 )
-custom_embedder_root_relative = os.path.relpath(custom_embedder_root, now_dir)
-
 os.makedirs(custom_embedder_root, exist_ok=True)
-os.makedirs(pretraineds_custom_path_relative, exist_ok=True)
+os.makedirs(pretraineds_custom_path, exist_ok=True)
+
+# For UI we use full paths; training scripts accept full paths
+pretraineds_custom_path_relative = pretraineds_custom_path
+custom_embedder_root_relative = custom_embedder_root
 
 
 def get_pretrained_list(suffix):
     return [
         os.path.join(dirpath, filename)
-        for dirpath, _, filenames in os.walk(pretraineds_custom_path_relative)
+        for dirpath, _, filenames in os.walk(pretraineds_custom_path)
         for filename in filenames
         if filename.endswith(".pth") and suffix in filename
     ]
@@ -95,8 +97,8 @@ def refresh_datasets():
     return {"choices": sorted(get_datasets_list()), "__type__": "update"}
 
 
-# Model Names
-models_path = os.path.join(now_dir, "logs")
+# Model Names (trained models under user Application Support)
+models_path = os.path.join(_user_data, "logs")
 
 
 def get_models_list():
@@ -143,7 +145,7 @@ def save_drop_model(dropbox):
         )
     else:
         file_name = os.path.basename(dropbox)
-        pretrained_path = os.path.join(pretraineds_custom_path_relative, file_name)
+        pretrained_path = os.path.join(pretraineds_custom_path, file_name)
         if os.path.exists(pretrained_path):
             os.remove(pretrained_path)
         shutil.copy(dropbox, pretrained_path)

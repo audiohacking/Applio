@@ -19,15 +19,18 @@ from assets.i18n.i18n import I18nAuto
 
 i18n = I18nAuto()
 
-model_root = os.path.join(now_dir, "logs")
+from app_paths import get_app_support_dir
+_user_data = get_app_support_dir()
+
+model_root = os.path.join(_user_data, "logs")
 custom_embedder_root = os.path.join(
-    now_dir, "rvc", "models", "embedders", "embedders_custom"
+    _user_data, "rvc", "models", "embedders", "embedders_custom"
 )
 
 os.makedirs(custom_embedder_root, exist_ok=True)
 
-custom_embedder_root_relative = os.path.relpath(custom_embedder_root, now_dir)
-model_root_relative = os.path.relpath(model_root, now_dir)
+custom_embedder_root_relative = custom_embedder_root
+model_root_relative = model_root
 
 
 def normalize_path(p):

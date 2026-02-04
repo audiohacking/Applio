@@ -1,10 +1,13 @@
 import os
 import torch
 
+from app_paths import get_app_support_dir
 from rvc.lib.predictors.RMVPE import RMVPE0Predictor
 from torchfcpe import spawn_infer_model_from_pt
 import torchcrepe
 import numpy as np
+
+_predictors_dir = os.path.join(get_app_support_dir(), "rvc", "models", "predictors")
 
 
 class RMVPE:
@@ -13,7 +16,7 @@ class RMVPE:
         self.sample_rate = sample_rate
         self.hop_size = hop_size
         self.model = RMVPE0Predictor(
-            os.path.join("rvc", "models", "predictors", model_name),
+            os.path.join(_predictors_dir, model_name),
             device=self.device,
         )
 
@@ -62,7 +65,7 @@ class FCPE:
         self.sample_rate = sample_rate
         self.hop_size = hop_size
         self.model = spawn_infer_model_from_pt(
-            os.path.join("rvc", "models", "predictors", "fcpe.pt"),
+            os.path.join(_predictors_dir, "fcpe.pt"),
             self.device,
             bundled_model=True,
         )

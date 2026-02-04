@@ -13,6 +13,20 @@ app_name = 'Applio'
 datas = []
 datas += collect_data_files('gradio')
 datas += collect_data_files('gradio_client')
+# Gradio reads .py source files at runtime (e.g. component_meta.create_or_modify_pyi);
+# include full package tree so Path(__file__).parent / "*.py" exists in the bundle
+try:
+    import gradio as _gr
+    datas += [(os.path.dirname(_gr.__file__), 'gradio')]
+except ImportError:
+    pass
+datas += collect_data_files('groovy')  # gradio dependency; needs version.txt at runtime
+# Torch uses inspect.getsource() at import; include package tree so source is available
+try:
+    import torch as _torch
+    datas += [(os.path.dirname(_torch.__file__), 'torch')]
+except ImportError:
+    pass
 datas += collect_data_files('safehttpx')
 datas += collect_data_files('transformers')
 datas += collect_data_files('fairseq')
@@ -32,6 +46,7 @@ datas += [('app.py', '.')]
 hiddenimports = []
 hiddenimports += collect_submodules('gradio')
 hiddenimports += collect_submodules('gradio_client')
+hiddenimports += collect_submodules('groovy')
 hiddenimports += collect_submodules('uvicorn')
 hiddenimports += collect_submodules('transformers')
 hiddenimports += collect_submodules('fairseq')
@@ -57,6 +72,7 @@ hiddenimports += [
     'uvicorn.protocols.websockets.auto', 
     'uvicorn.lifespan', 
     'uvicorn.lifespan.on',
+    'app_paths',
     'rvc.lib.platform',
     'rvc.lib.zluda',
     'assets.i18n.i18n',

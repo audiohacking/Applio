@@ -3,11 +3,13 @@ import os
 import sys
 import json
 
+from app_paths import get_app_support_dir
+
 now_dir = os.getcwd()
 
 
 def stop_train(model_name: str):
-    pid_file_path = os.path.join(now_dir, "logs", model_name, "config.json")
+    pid_file_path = os.path.join(get_app_support_dir(), "logs", model_name, "config.json")
     try:
         with open(pid_file_path, "r") as pid_file:
             pid_data = json.load(pid_file)
@@ -34,6 +36,13 @@ def stop_infer():
 
 
 def restart_applio():
+    # When running as the bundled app, do not exec/restart — that can cause a second
+    # instance or relaunch issues. User should quit and reopen the app.
+    if getattr(sys, "frozen", False):
+        raise gr.Error(
+            "When running as the Applio app, please quit (Cmd+Q or close the window) and reopen Applio to restart. "
+            "Do not use Restart from within the app."
+        )
     if os.name != "nt":
         os.system("clear")
     else:

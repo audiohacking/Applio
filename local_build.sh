@@ -1,7 +1,8 @@
 #!/bin/bash
 # ---------------------------------------------------------------------------
 #  Applio - Local macOS Build Script
-#  Replicates the GitHub Actions build process for local testing
+#  Replicates .github/workflows/build-macos-release.yml for local testing.
+#  Steps are kept in sync with the workflow so local and CI behave the same.
 # ---------------------------------------------------------------------------
 
 set -e  # Exit on error
@@ -11,12 +12,9 @@ echo "Applio - Local macOS Build"
 echo "=========================================="
 echo ""
 
-# This script mirrors .github/workflows/build-macos-release.yml
-# for local testing without needing to push to GitHub
-
 cd "$(dirname "$0")"
 
-# Check Python 3.11 (same as GitHub Actions)
+# --- Step: Set up Python (GA: actions/setup-python@v5, python-version: '3.11') ---
 if ! command -v python3.11 &> /dev/null && ! python3 --version 2>&1 | grep -q "3.11"; then
     echo "ERROR: Python 3.11 not found"
     echo "GitHub Actions uses Python 3.11. Please install it for consistent builds."
@@ -31,29 +29,43 @@ fi
 echo "Using Python: $($PYTHON --version)"
 echo ""
 
-# Install system dependencies for icon generation
+# --- Step: Install system dependencies (GA: brew install imagemagick) ---
 echo "Checking system dependencies..."
 if ! command -v convert &> /dev/null && ! command -v magick &> /dev/null; then
-    echo "WARNING: Icon generation tools not found"
-    echo "Install with: brew install imagemagick"
+    echo "WARNING: ImageMagick not found; icon generation may use Python fallback."
+    echo "For parity with CI: brew install imagemagick"
     echo ""
 fi
 
-# Install Python dependencies
+# --- Step: Install Python dependencies (GA: pip upgrade + requirements_macos.txt) ---
 echo "Installing Python dependencies..."
 $PYTHON -m pip install --upgrade pip
-pip install -r requirements_macos.txt
+$PYTHON -m pip install -r requirements_macos.txt
 
+echo "Verifying critical dependencies (same checks as GitHub Actions)..."
+MISSING=""
+for pkg in webrtcvad-wheels pyinstaller torch gradio pywebview; do
+    if ! $PYTHON -m pip show "$pkg" &>/dev/null; then
+        MISSING="${MISSING} ${pkg}"
+    fi
+done
+if [ -n "$MISSING" ]; then
+    echo "ERROR: Missing package(s):$MISSING"
+    echo "Run: $PYTHON -m pip install -r requirements_macos.txt"
+    exit 1
+fi
+echo "✓ Critical packages present (webrtcvad-wheels, pyinstaller, torch, gradio, pywebview)"
 echo ""
 
-# Generate app icon
+# --- Step: Generate app icon (GA: generate_icon.sh) ---
 echo "Generating app icon..."
 chmod +x build/macos/generate_icon.sh
+export PYTHON
 ./build/macos/generate_icon.sh
 
 echo ""
 
-# Check build/macos assets (same checks as GitHub Actions)
+# --- Step: Check build assets (GA: Check build/macos assets) ---
 echo "Checking build assets..."
 if [ ! -f "build/macos/Applio.icns" ]; then
     echo "ERROR: build/macos/Applio.icns not found after generation."
@@ -67,30 +79,28 @@ if [ ! -f ".github/DMG_README.txt" ]; then
     echo "ERROR: .github/DMG_README.txt not found."
     exit 1
 fi
-
 echo "✓ All build assets present"
 echo ""
 
-# Clean previous PyInstaller outputs
+# --- Step: Clean previous PyInstaller outputs (GA: Clean previous PyInstaller outputs) ---
 echo "Cleaning previous builds..."
 rm -rf dist/Applio.app build/Applio
 
-# Build with PyInstaller
+# --- Step: Build with PyInstaller (GA: Build with PyInstaller) ---
 echo "Building with PyInstaller..."
 $PYTHON -m PyInstaller Applio.spec --clean --noconfirm
 
 echo ""
 
-# Set up app bundle executable
+# --- Step: Set up app bundle executable (GA: Set up app bundle executable) ---
 echo "Setting up app bundle executable..."
 cp dist/Applio.app/Contents/MacOS/Applio_bin dist/Applio.app/Contents/MacOS/Applio
 chmod +x dist/Applio.app/Contents/MacOS/Applio
 
-# Code sign the app bundle
-echo ""
+# --- Step: Code sign (GA: Code sign the app bundle, identity from env or '-') ---
 echo "Code signing app bundle..."
 chmod +x build/macos/codesign.sh
-MACOS_SIGNING_IDENTITY="-" ./build/macos/codesign.sh dist/Applio.app
+MACOS_SIGNING_IDENTITY="${MACOS_SIGNING_IDENTITY:--}" ./build/macos/codesign.sh dist/Applio.app
 
 echo ""
 echo "=========================================="

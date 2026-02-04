@@ -3,6 +3,7 @@ import librosa
 import gradio as gr
 from matplotlib import pyplot as plt
 
+from app_paths import get_app_support_dir
 from rvc.lib.predictors.F0Extractor import F0Extractor
 
 from assets.i18n.i18n import I18nAuto
@@ -12,8 +13,10 @@ i18n = I18nAuto()
 
 def extract_f0_curve(audio_path: str, method: str):
     print("Extracting F0 Curve...")
-    image_path = os.path.join("logs", "f0_plot.png")
-    txt_path = os.path.join("logs", "f0_curve.txt")
+    logs_dir = os.path.join(get_app_support_dir(), "logs")
+    os.makedirs(logs_dir, exist_ok=True)
+    image_path = os.path.join(logs_dir, "f0_plot.png")
+    txt_path = os.path.join(logs_dir, "f0_curve.txt")
     y, sr = librosa.load(audio_path, sr=None)
     hop_length = 160
 
