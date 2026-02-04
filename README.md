@@ -82,6 +82,23 @@ To monitor training or visualize data:
 
 For more detailed instructions, visit the [documentation](https://docs.applio.org).
 
+## This fork (macOS app)
+
+This fork adds a **native macOS app** build and keeps data in standard locations.
+
+**Packaging:** The app is built with **PyInstaller** and **pywebview**. Run `./local_build.sh` to produce `dist/Applio.app`. The script installs deps from `requirements_macos.txt`, generates the icon, runs PyInstaller, and code-signs the bundle. See `.github/workflows/build-macos-release.yml` for CI.
+
+**macOS data locations (when running the .app):**
+
+| Data            | Path |
+|-----------------|------|
+| App support root | `~/Library/Application Support/Applio` |
+| Trained models   | `~/Library/Application Support/Applio/logs` |
+| RVC models (pretrained, etc.) | `~/Library/Application Support/Applio/rvc/models` |
+| Logs / console   | `~/Library/Logs/Applio` |
+
+When running from source (`run-applio.sh`), the current working directory is used instead.
+
 ## References
 
 Applio is made possible thanks to these projects and their references:
